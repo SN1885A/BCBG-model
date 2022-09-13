@@ -74,12 +74,12 @@ float _do_trial(
 #if defined(CHECK_CONV_TWICE)
   int converged;
   if (checkedtrial) {
-    converged = _run_sim(sim_time,sim_step,dt,activations,cs,params,delays,means,0,ch_n,msn_separation,0,mem,1);
+    converged = _run_sim(sim_time,sim_step,dt,activations,cs,params,delays,means,0,ch_n,msn_separation,0,mem,0,1.0,0.0,1);
   } else {
-    converged = _run_sim(sim_time,sim_step,dt,activations,cs,params,delays,means,0,ch_n,msn_separation,0,mem,0);
+    converged = _run_sim(sim_time,sim_step,dt,activations,cs,params,delays,means,0,ch_n,msn_separation,0,mem,0,1.0,0.0,1);
     if (converged == 1) {
       std::vector <float> smalldt_means(means);
-      converged = _run_sim(sim_time,sim_step,dt/10.0,activations,cs,params,delays,means,0,ch_n,msn_separation,0,mem,1);
+      converged = _run_sim(sim_time,sim_step,dt/10.0,activations,cs,params,delays,means,0,ch_n,msn_separation,0,mem,1,1.0,0.0,1);
       if (converged != -1) {
         for (int i=0;i<NUCLEUS_NUMBER;i++) {
           if (abs(means[i*ch_n] - smalldt_means[i*ch_n]) > 1) {
@@ -90,7 +90,7 @@ float _do_trial(
     }
   }
 #else
-  int converged = _run_sim(sim_time,sim_step,dt,activations,cs,params,delays,means,0,ch_n,msn_separation,0,mem,0);
+  int converged = _run_sim(sim_time,sim_step,dt,activations,cs,params,delays,means,0,ch_n,msn_separation,0,mem,0,1.0,0.0,1);
 #endif
 
   float score = _has_changed_near_tronqgaussian(ref[nucleus*ch_n],means[nucleus*ch_n],proportional_change,proportional_radius);

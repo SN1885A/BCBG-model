@@ -18,7 +18,7 @@
 //#define MSN_SEPARATION 
 
 // Simulates multi-channel nuclei
-#define MULTICHANNELSMODEL
+//#define MULTICHANNELSMODEL
 
 
 
@@ -134,6 +134,9 @@ enum BCBG_PARAMS {
 #endif
   THETA_MSN, THETA_FSI, THETA_STN, THETA_GPe, THETA_GPi,
   FSI_SMAX,
+  MODELID,
+  ALPHA,
+  STN_THETA_OFFSET,
   PARAMS_NUMBER
 };
 

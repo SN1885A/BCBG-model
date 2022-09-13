@@ -60,6 +60,9 @@ void BCBG2::SingleChannelNucleus::set_afferent(float A, float D, int Sign, float
 {
  SingleChannelNucleus::set_afferent(A, D, Sign, C, T, distance, N); // Dummy function, calls other "set_afferent"
 }
+
+//STN->set_afferent(A_AMPA, D_AMPA , S_AMPA , p[CMPf_STN]*a[CMPf_STN_AMPA] , de[CMPf_STN], c[CMPf_STN], p[DIST_CMPf_STN], CMPf);
+
 void BCBG2::SingleChannelNucleus::set_afferent(float A, float D, int Sign, float C, int T, float distance, SingleChannelNucleus* N)
 {
   this->initialize_new_afferent();

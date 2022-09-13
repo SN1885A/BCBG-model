@@ -71,8 +71,9 @@ class BCBG2
 #ifdef TSIROGIANNIS_2010
     BCBG2() : _uni_gaussian(base_generator_t(42u), boost::normal_distribution<>(3.0f, 1.0f)) {}
 #else
-    //BCBG2() : _uni_one_gaussian(base_generator_t(42u), boost::normal_distribution<>(1.0f, 0.5f)) {} // version with noise
-    BCBG2() : _uni_one_gaussian(base_generator_t(42u), boost::normal_distribution<>(1.0f, 0.0f)) {} // no noise
+    BCBG2() : _uni_one_gaussian(base_generator_t(42u), boost::normal_distribution<>(1.0f, 0.5f)) {} // version with noise
+    //BCBG2() : _uni_one_gaussian(base_generator_t(42u), boost::normal_distribution<>(1.0f, 2.0f)) {} // version with noise
+    //BCBG2() : _uni_one_gaussian(base_generator_t(42u), boost::normal_distribution<>(1.0f, 0.0f)) {} // no noise
 #endif
     void initialize(int nucleus_type, int max_tau, float dt);
     void update(float dt);
@@ -153,12 +154,12 @@ class BCBG2
 class Constants {
   public:
     // defining some constants
-    static const float A_AMPA = 0.001 * 5.43656365692;        // 2*e
-    static const float D_AMPA = 0.65238763883017081;  // (1/4)*e
-    static const float A_NMDA = 0.001 * 0.27182818284590454;  // 0.1*e
-    static const float D_NMDA = 0.027182818284590453; // (1/100)*e
-    static const float A_GABA = 0.001 * 5.4365636569180902;   // 2*e
-    static const float D_GABA = 0.45304697140984085;  // (1/6)*e
+    static constexpr float A_AMPA = 0.001 * 5.43656365692;        // 2*e
+    static constexpr float D_AMPA = 0.65238763883017081;  // (1/4)*e
+    static constexpr float A_NMDA = 0.001 * 0.27182818284590454;  // 0.1*e
+    static constexpr float D_NMDA = 0.027182818284590453; // (1/100)*e
+    static constexpr float A_GABA = 0.001 * 5.4365636569180902;   // 2*e
+    static constexpr float D_GABA = 0.45304697140984085;  // (1/6)*e
 };
 
 

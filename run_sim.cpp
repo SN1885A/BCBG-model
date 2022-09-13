@@ -4,6 +4,9 @@
 
 #include "constants.hpp"
 #include "run_sim.hpp"
+#include <iostream>
+#include <string>
+#include <fstream>
 
 void _add_to_fixed_l_list(int size, std::list<std::vector<float> >& l, std::vector<float>& e)
 {
@@ -42,24 +45,27 @@ int _run_sim(
   std::vector<float> cs;
   cs.assign(ARGS_NUMBER, 0.);
   MemoryBCBG2 mem = {-1};
-  return _run_sim(max_duration,bunch_duration,dt,activ,cs,params,delay,means,verbose,1,1,1,mem,0);
+  return _run_sim(max_duration,bunch_duration,dt,activ,cs,params,delay,means,verbose,1,1,1,mem,0, 1.0, 0.0, 1);
 }
 
 int _run_sim(
     float max_duration,
     float bunch_duration,
     float dt,
-    std::vector<float> &a,
-    std::vector<float> &c,
-    std::vector<float> &p,
-    std::vector<int> &de,
+    std::vector<float> &a, //modulators_synaptic -> 1.0f 
+    std::vector<float> &c, //params_cs -> one-to-one or all-to-all
+    std::vector<float> &p, //params_synaptic
+    std::vector<int> &de, //params_delay
     std::vector<float> &means,
     int verbose,
     int ch_n,
     int msn_separation,
     int do_checks,
     MemoryBCBG2& mem,
-    int integration_method)
+    int integration_method, 
+    float alpha, 
+    float STN_Theta_Offset, 
+    int modelNumber)
 { 
   // This is the work-horse functions which builds the whole BG model, and computes in a loop the chosen experiment (selected with the variable verbose)
 
@@ -83,8 +89,9 @@ int _run_sim(
   float D_AMPA = 0.5437; //1/5 *e
   int S_AMPA = 1;
 
-float A_NMDA = A_AMPA / 40.; // we suppose a NMDA effect 40 times weaker. This corresponds to the ratio AMPA/NMDA when 100 synapses are concerned see Bouteiller 2008 p.190
-float D_NMDA = 0.02718; // we suppose a NMDA effect 100 ms long, which is 20 times longer. See Destexhe 1998.
+   
+  float A_NMDA = A_AMPA / 40.; // we suppose a NMDA effect 40 times weaker. This corresponds to the ratio AMPA/NMDA when 100 synapses are concerned see Bouteiller 2008 p.190
+  float D_NMDA = 0.02718; // we suppose a NMDA effect 100 ms long, which is 20 times longer. See Destexhe 1998.
   // overall, the NMDA is 2 times weaker than AMPA, which is coherent with desactivations studies
   int S_NMDA = 1;
 
@@ -194,13 +201,16 @@ if (msn_separation) {
 } else {
   MSN  = bg->add_single_channel_nucleus(300.,0.1,(p[THETA_MSN]*25.+5.),0.26,0,distances_msn,diameters_msn,comp_nb_msn,"MSN");
 }
-BCBG2::SingleChannelNucleus* FSI  = bg->add_single_channel_nucleus(p[FSI_SMAX],10.,(p[THETA_FSI]*25.+5.),0.26,0,distances_fsi,diameters_fsi,comp_nb_fsi,"FSI");
+BCBG2::SingleChannelNucleus* FSI  = bg->add_single_channel_nucleus(p[FSI_SMAX],10.,(p[THETA_FSI]*25.+3.),0.26,0,distances_fsi,diameters_fsi,comp_nb_fsi,"FSI");
+//BCBG2::SingleChannelNucleus* STN  = bg->add_single_channel_nucleus(300.,20.,(p[THETA_STN]*25.+5.)+STN_Theta_Offset,0.26,0,distances_stn,diameters_stn,comp_nb_stn,"STN");
 BCBG2::SingleChannelNucleus* STN  = bg->add_single_channel_nucleus(300.,20.,(p[THETA_STN]*25.+5.),0.26,0,distances_stn,diameters_stn,comp_nb_stn,"STN");
-BCBG2::SingleChannelNucleus* GPe  = bg->add_single_channel_nucleus(400.,65.,(p[THETA_GPe]*25.+5.),0.26,0,distances_gpe,diameters_gpe,comp_nb_gpe,"GPe");
+//BCBG2::SingleChannelNucleus* GPe  = bg->add_single_channel_nucleus(400.,65.,(p[THETA_GPe]*25.+5.),0.26,0,distances_gpe,diameters_gpe,comp_nb_gpe,"GPe");
+BCBG2::SingleChannelNucleus* GPe  = bg->add_single_channel_nucleus(400.,65.,(p[THETA_GPe]*25.+5.)+STN_Theta_Offset,0.26,0,distances_gpe,diameters_gpe,comp_nb_gpe,"GPe");
 BCBG2::SingleChannelNucleus* GPi  = bg->add_single_channel_nucleus(400.,70.,(p[THETA_GPi]*25.+5.),0.26,0,distances_gpi,diameters_gpi,comp_nb_gpi,"GPi");
 if (msn_separation) {
   MSND2  = bg->add_single_channel_nucleus(300. ,0.1,(p[THETA_MSN]*25.+5.),0.26,0,distances_msn,diameters_msn,comp_nb_msn,"MSND2");
 }
+
 
 #ifdef ITPTCTX
 BCBG2::SingleChannelNucleus* CTXPT  = bg->add_single_channel_nucleus(0.,15.,0.,0.,0,distances_dummy,diameters_dummy,comp_nb_dummy,"CTXPT");
@@ -208,14 +218,22 @@ BCBG2::SingleChannelNucleus* CTXPT  = bg->add_single_channel_nucleus(0.,15.,0.,0
 
 #endif
 
-
 bool with_gabab = false;
 
 
 if (msn_separation) {
+
 #ifdef ITPTCTX
-MSND1->set_afferent(A_AMPASTR1 , D_AMPASTR1 , S_AMPA , p[CTXPT_MSN]*a[CTXPT_MSN_AMPA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
-MSND1->set_afferent(A_NMDASTR1, D_NMDASTR1 , S_NMDA , p[CTXPT_MSN]*a[CTXPT_MSN_NMDA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
+
+  //a = modulators_synaptic -> 1.0f 
+  //c = params_cs -> one-to-one or all-to-all
+  //p = params_synaptic
+  //de = params_delay
+
+  //float A, float D, int Sign, float C, int T, float connexion_scheme, float distance, MultiChannelsNucleus* N
+  
+  MSND1->set_afferent(A_AMPASTR1 , D_AMPASTR1 , S_AMPA , p[CTXPT_MSN]*a[CTXPT_MSN_AMPA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
+  MSND1->set_afferent(A_NMDASTR1, D_NMDASTR1 , S_NMDA , p[CTXPT_MSN]*a[CTXPT_MSN_NMDA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
 #endif
   MSND1->set_afferent(A_AMPASTR1 , D_AMPASTR1 , S_AMPA , p[CTX_MSN]*a[CTX_MSN_AMPA], de[CTX_MSN], c[CTX_MSN], p[DIST_CTX_MSN], CTX);
   MSND1->set_afferent(A_NMDASTR1, D_NMDASTR1 , S_NMDA , p[CTX_MSN]*a[CTX_MSN_NMDA], de[CTX_MSN], c[CTX_MSN], p[DIST_CTX_MSN], CTX);
@@ -228,8 +246,8 @@ MSND1->set_afferent(A_NMDASTR1, D_NMDASTR1 , S_NMDA , p[CTXPT_MSN]*a[CTXPT_MSN_N
   MSND1->set_afferent(A_GABAASTR1, D_GABAASTR1, S_GABAA, p[MSN_MSN]*a[MSN_MSN_GABAA], de[MSN_MSN], c[MSN_MSN], p[DIST_MSN_MSN], MSND1);
   MSND1->set_afferent(A_GABAASTR1, D_GABAASTR1, S_GABAA, p[MSN_MSN]*a[MSN_MSN_GABAA], de[MSN_MSN], c[MSN_MSN], p[DIST_MSN_MSN], MSND2);
 #ifdef ITPTCTX
-MSND2->set_afferent(A_AMPASTR2 , D_AMPASTR2 , S_AMPA , p[CTXPT_MSN]*a[CTXPT_MSN_AMPA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
-MSND2->set_afferent(A_NMDASTR2, D_NMDASTR2 , S_NMDA , p[CTXPT_MSN]*a[CTXPT_MSN_NMDA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
+  MSND2->set_afferent(A_AMPASTR2 , D_AMPASTR2 , S_AMPA , p[CTXPT_MSN]*a[CTXPT_MSN_AMPA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
+  MSND2->set_afferent(A_NMDASTR2, D_NMDASTR2 , S_NMDA , p[CTXPT_MSN]*a[CTXPT_MSN_NMDA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
 #endif
   MSND2->set_afferent(A_AMPASTR2 , D_AMPASTR2 , S_AMPA , p[CTX_MSN]*a[CTX_MSN_AMPA], de[CTX_MSN], c[CTX_MSN], p[DIST_CTX_MSN], CTX);
   MSND2->set_afferent(A_NMDASTR2, D_NMDASTR2 , S_NMDA , p[CTX_MSN]*a[CTX_MSN_NMDA], de[CTX_MSN], c[CTX_MSN], p[DIST_CTX_MSN], CTX);
@@ -251,10 +269,14 @@ MSND2->set_afferent(A_NMDASTR2, D_NMDASTR2 , S_NMDA , p[CTXPT_MSN]*a[CTXPT_MSN_N
     MSND2->set_afferent(A_GABAB, D_GABAB, S_GABAB, p[MSN_MSN]*a[MSN_MSN_GABAB], de[MSN_MSN], c[MSN_MSN], p[DIST_MSN_MSN], MSND1);
     MSND2->set_afferent(A_GABAB, D_GABAB, S_GABAB, p[MSN_MSN]*a[MSN_MSN_GABAB], de[MSN_MSN], c[MSN_MSN], p[DIST_MSN_MSN], MSND2);
   }
-} else {
+}
+
+
+else {
+
 #ifdef ITPTCTX
-MSN->set_afferent(A_AMPASTR , D_AMPASTR , S_AMPA , p[CTXPT_MSN]*a[CTXPT_MSN_AMPA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
-MSN->set_afferent(A_NMDASTR, D_NMDASTR , S_NMDA , p[CTXPT_MSN]*a[CTXPT_MSN_NMDA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
+  MSN->set_afferent(A_AMPASTR , D_AMPASTR , S_AMPA , p[CTXPT_MSN]*a[CTXPT_MSN_AMPA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
+  MSN->set_afferent(A_NMDASTR, D_NMDASTR , S_NMDA , p[CTXPT_MSN]*a[CTXPT_MSN_NMDA] , de[CTXPT_MSN], c[CTXPT_MSN], p[DIST_CTXPT_MSN], CTXPT);
 #endif
   MSN->set_afferent(A_AMPASTR , D_AMPASTR , S_AMPA , p[CTX_MSN]*a[CTX_MSN_AMPA] , de[CTX_MSN], c[CTX_MSN], p[DIST_CTX_MSN], CTX);
   MSN->set_afferent(A_NMDASTR, D_NMDASTR , S_NMDA , p[CTX_MSN]*a[CTX_MSN_NMDA] , de[CTX_MSN], c[CTX_MSN], p[DIST_CTX_MSN], CTX);
@@ -289,31 +311,32 @@ if (with_gabab) {
   FSI->set_afferent(A_GABAB, D_GABAB, S_GABAB, p[FSI_FSI]*a[FSI_FSI_GABAB], de[FSI_FSI], c[FSI_FSI], p[DIST_FSI_FSI], FSI);
 }
 
-STN->set_afferent(A_AMPA, D_AMPA , S_AMPA , p[CMPf_STN]*a[CMPf_STN_AMPA] , de[CMPf_STN], c[CMPf_STN], p[DIST_CMPf_STN], CMPf);
-STN->set_afferent(A_NMDA, D_NMDA , S_NMDA , p[CMPf_STN]*a[CMPf_STN_NMDA] , de[CMPf_STN], c[CMPf_STN], p[DIST_CMPf_STN], CMPf);
+STN->set_afferent(A_AMPA*alpha, D_AMPA , S_AMPA , p[CMPf_STN]*a[CMPf_STN_AMPA] , de[CMPf_STN], c[CMPf_STN], p[DIST_CMPf_STN], CMPf);
+STN->set_afferent(A_NMDA*alpha, D_NMDA , S_NMDA , p[CMPf_STN]*a[CMPf_STN_NMDA] , de[CMPf_STN], c[CMPf_STN], p[DIST_CMPf_STN], CMPf);
 #ifdef ITPTCTX
-STN->set_afferent(A_AMPA , D_AMPA , S_AMPA , p[CTX_STN]*a[CTX_STN_AMPA] , de[CTX_STN], c[CTX_STN], p[DIST_CTX_STN], CTXPT);
-STN->set_afferent(A_NMDA , D_NMDA , S_NMDA , p[CTX_STN]*a[CTX_STN_NMDA] , de[CTX_STN], c[CTX_STN], p[DIST_CTX_STN], CTXPT);
+STN->set_afferent(A_AMPA*alpha , D_AMPA , S_AMPA , p[CTX_STN]*a[CTX_STN_AMPA] , de[CTX_STN], c[CTX_STN], p[DIST_CTX_STN], CTXPT);
+STN->set_afferent(A_NMDA*alpha , D_NMDA , S_NMDA , p[CTX_STN]*a[CTX_STN_NMDA] , de[CTX_STN], c[CTX_STN], p[DIST_CTX_STN], CTXPT);
 #else
 STN->set_afferent(A_AMPA , D_AMPA , S_AMPA , p[CTX_STN]*a[CTX_STN_AMPA] , de[CTX_STN], c[CTX_STN], p[DIST_CTX_STN], CTX);
 STN->set_afferent(A_NMDA , D_NMDA , S_NMDA , p[CTX_STN]*a[CTX_STN_NMDA] , de[CTX_STN], c[CTX_STN], p[DIST_CTX_STN], CTX);
 #endif
-STN->set_afferent(A_GABAA, D_GABAA, S_GABAA, p[GPe_STN]*a[GPe_STN_GABAA], de[GPe_STN], c[GPe_STN], p[DIST_GPe_STN], GPe);
+STN->set_afferent(A_GABAA*alpha, D_GABAA, S_GABAA, p[GPe_STN]*a[GPe_STN_GABAA], de[GPe_STN], c[GPe_STN], p[DIST_GPe_STN], GPe);
 if (with_gabab) {
   STN->set_afferent(A_GABAB, D_GABAB, S_GABAB, p[GPe_STN]*a[GPe_STN_GABAB], de[GPe_STN], c[GPe_STN], p[DIST_GPe_STN], GPe);
 }
 
-GPe->set_afferent(A_AMPA , D_AMPA , S_AMPA , p[CMPf_GPe]*a[CMPf_GPe_AMPA] , de[CMPf_GPe], c[CMPf_GPe], p[DIST_CMPf_GPe], CMPf);
-GPe->set_afferent(A_NMDA, D_NMDA , S_NMDA , p[CMPf_GPe]*a[CMPf_GPe_NMDA] , de[CMPf_GPe], c[CMPf_GPe], p[DIST_CMPf_GPe], CMPf);
-GPe->set_afferent(A_AMPA , D_AMPA , S_AMPA , p[STN_GPe]*a[STN_GPe_AMPA] , de[STN_GPe], c[STN_GPe], p[DIST_STN_GPe], STN);
-GPe->set_afferent(A_NMDA, D_NMDA , S_NMDA , p[STN_GPe]*a[STN_GPe_NMDA] , de[STN_GPe], c[STN_GPe], p[DIST_STN_GPe], STN);
+GPe->set_afferent(A_AMPA*alpha , D_AMPA , S_AMPA , p[CMPf_GPe]*a[CMPf_GPe_AMPA] , de[CMPf_GPe], c[CMPf_GPe], p[DIST_CMPf_GPe], CMPf);
+GPe->set_afferent(A_NMDA*alpha, D_NMDA , S_NMDA , p[CMPf_GPe]*a[CMPf_GPe_NMDA] , de[CMPf_GPe], c[CMPf_GPe], p[DIST_CMPf_GPe], CMPf);
+GPe->set_afferent(A_AMPA*alpha , D_AMPA , S_AMPA , p[STN_GPe]*a[STN_GPe_AMPA] , de[STN_GPe], c[STN_GPe], p[DIST_STN_GPe], STN);
+GPe->set_afferent(A_NMDA*alpha, D_NMDA , S_NMDA , p[STN_GPe]*a[STN_GPe_NMDA] , de[STN_GPe], c[STN_GPe], p[DIST_STN_GPe], STN);
 if (msn_separation) {
   GPe->set_afferent(A_GABAA, D_GABAA, S_GABAA, p[MSN_GPe]*a[MSN_GPe_GABAA], de[MSN_GPe], c[MSN_GPe], p[DIST_MSN_GPe], MSND1);
   GPe->set_afferent(A_GABAA, D_GABAA, S_GABAA, p[MSN_GPe]*a[MSN_GPe_GABAA], de[MSN_GPe], c[MSN_GPe], p[DIST_MSN_GPe], MSND2);
-} else {
-  GPe->set_afferent(A_GABAA, D_GABAA, S_GABAA, p[MSN_GPe]*a[MSN_GPe_GABAA], de[MSN_GPe], c[MSN_GPe], p[DIST_MSN_GPe], MSN);
+} 
+else {
+  GPe->set_afferent(A_GABAA*alpha, D_GABAA, S_GABAA, p[MSN_GPe]*a[MSN_GPe_GABAA], de[MSN_GPe], c[MSN_GPe], p[DIST_MSN_GPe], MSN);
 }
-GPe->set_afferent(A_GABAA, D_GABAA, S_GABAA, p[GPe_GPe]*a[GPe_GPe_GABAA], de[GPe_GPe], c[GPe_GPe], p[DIST_GPe_GPe], GPe);
+GPe->set_afferent(A_GABAA*alpha, D_GABAA, S_GABAA, p[GPe_GPe]*a[GPe_GPe_GABAA], de[GPe_GPe], c[GPe_GPe], p[DIST_GPe_GPe], GPe);
 if (with_gabab) {
   if (msn_separation) {
     GPe->set_afferent(A_GABAB, D_GABAB, S_GABAB, p[MSN_GPe]*a[MSN_GPe_GABAB], de[MSN_GPe], c[MSN_GPe], p[DIST_MSN_GPe], MSND1);
@@ -326,7 +349,7 @@ if (with_gabab) {
 
 GPi->set_afferent(A_AMPA , D_AMPA , S_AMPA , p[CMPf_GPi]*a[CMPf_GPi_AMPA] , de[CMPf_GPi], c[CMPf_GPi], p[DIST_CMPf_GPi], CMPf);
 GPi->set_afferent(A_NMDA, D_NMDA , S_NMDA , p[CMPf_GPi]*a[CMPf_GPi_NMDA] , de[CMPf_GPi], c[CMPf_GPi], p[DIST_CMPf_GPi], CMPf);
-GPi->set_afferent(A_AMPA , D_AMPA , S_AMPA , p[STN_GPi]*a[STN_GPi_AMPA] , de[STN_GPi], c[STN_GPi], p[DIST_STN_GPi], STN);
+GPi->set_afferent(A_AMPA, D_AMPA , S_AMPA , p[STN_GPi]*a[STN_GPi_AMPA] , de[STN_GPi], c[STN_GPi], p[DIST_STN_GPi], STN);
 GPi->set_afferent(A_NMDA, D_NMDA , S_NMDA , p[STN_GPi]*a[STN_GPi_NMDA] , de[STN_GPi], c[STN_GPi], p[DIST_STN_GPi], STN);
 if (msn_separation) {
   GPi->set_afferent(A_GABAA, D_GABAA, S_GABAA, p[MSN_GPi]*a[MSN_GPi_GABAA], de[MSN_GPi], c[MSN_GPi], p[DIST_MSN_GPi], MSND1);
@@ -350,6 +373,7 @@ int count = 0;
 int old_count = 0;
 float min_duration = 10.; // simulations longer than 10s
 int nb_conv = (int)(2./bunch_duration+0.5); // stabilisation over at least 2 second
+
 #ifdef LIGHTCONV
 min_duration = 0.2;
 nb_conv = (int)(0.1/bunch_duration+0.5); // stabilisation over at least 0.1 second
@@ -370,262 +394,110 @@ float hammerization_eval;
 old_count += count;
 count = 0;
 
-if (verbose==1)
-{
-  std::cerr << bunch << " iterations (" << bunch*dt << " s) to be done between two tests of convergence, until " << max_duration/dt << " iterations (" << max_duration << "s) are done" << std::endl;
+//if (verbose==1){
+  //std::cerr << bunch << " iterations (" << bunch*dt << " s) to be done between two tests of convergence, until " << max_duration/dt << " iterations (" << max_duration << "s) are done" << std::endl;
+//}
+
+if (mem.tmod_backup != -1) {
+  bg->load_all(mem); // as this is not the first run, we load the previous state
+} 
+else {
+  bg->stabilize_all((int)(10./dt + 0.5)); // as this is the first run, we try to stabilize as a mean to improve convergence
 }
 
+float ref_rates[7]={2.,4.,0.1,10.,20.,60.,70.};
 
+float maxstn = 0;
 
-  if (mem.tmod_backup != -1) {
-    bg->load_all(mem); // as this is not the first run, we load the previous state
-  } else {
-    bg->stabilize_all((int)(10./dt + 0.5)); // as this is the first run, we try to stabilize as a mean to improve convergence
-  }
+float freqcount = 0;
+float lastdiff  = 0;
+float laststn   = 0;
+float highval   = 0;
+float lowval    = 0;
 
-  float ref_rates[7]={2.,4.,0.1,10.,20.,60.,70.};
+bool not_nan = true;
 
-  float maxstn =0;
+char name[30];
 
-  float freqcount =0;
-  float lastdiff  =0;
-  float laststn   =0;
-  float highval   =0;
-  float lowval    =0;
+sprintf(name, "Results/%d_%0.2f_%0.2f.txt", modelNumber, STN_Theta_Offset, alpha);
 
-  bool not_nan = true;
+std::ofstream fichier(name, std::ios::out | std::ios::trunc);  // ouverture en écriture avec effacement du fichier ouvert
 
-  while (
-      (
-      (
-       (
-        (
-         ! _conv(last_out) || (verbose == 3) || (verbose == 4) || (verbose>4)
-        )
-        ||
-        (count < max_tau)
-        ||
-        (count*dt < min_duration)
-       )
-       &&
-       ( count*dt < max_duration )
-      )
-      ||
-      (verbose==1 && count*dt < max_duration)
-      )
-      && not_nan
-      )
-      {
-    if (verbose==2||verbose==3||verbose==4||(verbose>4))
-    {
-#ifdef MINRECORDT
-      if ((old_count+count)*dt <= MINRECORDT) {
+while (count*dt < max_duration){
+
+     if(fichier){
+
         for (int i=0; i<NUCLEUS_NUMBER; i++) { // displays also for the cortex & CMPf
-          ref_rates[i] = 0;
-          for (int ch_i=0; ch_i<ch_n; ch_i++) {
-            ref_rates[i] += bg->get_multi_channels_nucleus(i)->get_S(ch_i);
-          }
-          ref_rates[i] /= ch_n;
+          if(i < NUCLEUS_NUMBER-1)
+            fichier << bg->get_single_channel_nucleus(i)->get_S() << ',';
+          else
+            fichier << bg->get_single_channel_nucleus(i)->get_S() << '\n';
         }
-      }
-      if ((old_count+count)*dt > MINRECORDT) {
-#ifdef MAXRECORDT
-      if ((old_count+count)*dt <= MAXRECORDT) {
-        if (bg->get_multi_channels_nucleus(STN_N)->get_S(0) - laststn > 0 && lastdiff < 0) {
-          freqcount += 1;
-          highval += bg->get_multi_channels_nucleus(STN_N)->get_S(0);
-        } else if (bg->get_multi_channels_nucleus(STN_N)->get_S(0) - laststn < 0 && lastdiff > 0) {
-          lowval += bg->get_multi_channels_nucleus(STN_N)->get_S(0);
-        }
-        lastdiff   = bg->get_multi_channels_nucleus(STN_N)->get_S(0) - laststn;
-        laststn    = bg->get_multi_channels_nucleus(STN_N)->get_S(0);
-        if (bg->get_multi_channels_nucleus(STN_N)->get_S(0) > maxstn)
-          maxstn = bg->get_multi_channels_nucleus(STN_N)->get_S(0);
-#endif
-#endif
 
-#ifndef NOOUTPUT
-
-#ifdef MINRECORDT
-      std::cerr << (old_count+count)*dt - MINRECORDT;
-#else
-      std::cerr << (old_count+count)*dt;
-#endif
-      if (ch_n == 1) {
-        for (int i=0; i<NUCLEUS_NUMBER; i++) { // displays also for the cortex & CMPf
-          std::cerr << " , " << bg->get_single_channel_nucleus(i)->get_S();
-        }
-      } else if (ch_n == 0) {
-        for (int i=0; i<NUCLEUS_NUMBER; i++) { // displays also for the cortex & CMPf
-          std::cerr << " , " << bg->get_nucleus_cells(i)->get_meanS();
-        }
-      } else {
-        for (int i=0; i<NUCLEUS_NUMBER; i++) { // displays also for the cortex & CMPf
-          float nmeans = 0;
-          for (int ch_i=0; ch_i<ch_n; ch_i++) {
-            std::cerr << " , " << bg->get_multi_channels_nucleus(i)->get_S(ch_i);
-            nmeans += bg->get_multi_channels_nucleus(i)->get_S(ch_i);
-          }
-#ifdef MINRECORDT
-          std::cerr << " , " << nmeans / ((float)ch_n)/ref_rates[i];
-#else
-          std::cerr << " , " << nmeans / ((float)ch_n);
-#endif
-        }
-        }
-        std::cerr << std::endl;
-      //nooutput end
-#endif
-      }
-
-
-#ifdef MINRECORDT
-      }
-#ifdef MAXRECORDT
-      }
-#endif
-#endif
+     }
 
       if (ch_n == 1) {
         if (verbose == 4) {
           bg->updateSingleChannelNucleusWithNoise(bunch,integration_method);
-        } else {
+        } 
+        else {
           bg->updateSingleChannelNucleus(bunch,integration_method);
         }
-        count+=bunch;
-        for (int i=FIRST_NUCLEUS_SIM; i<LAST_NUCLEUS_SIM; i++)
-        { // do not store for the cortex & CMPf
+
+        count += bunch;
+
+        for (int i=FIRST_NUCLEUS_SIM; i<LAST_NUCLEUS_SIM; i++){ // do not store for the cortex & CMPf
           means[i] = bg->get_single_channel_nucleus(i)->get_S();
           if (isnan(means[i])) {
             not_nan = false;
             return_value = -1;
           }
         }
-      } else if (ch_n == 0) {
-        bg->updateNucleusCells(bunch);
-        count+=bunch;
-        for (int i=2; i<NUCLEUS_NUMBER; i++) { // do not store for the cortex & CMPf
-          means[i] = bg->get_nucleus_cells(i)->get_meanS();
-        }
-      } else {
+      } 
+      else {
         if (verbose==4) {
           bg->updateMultiChannelsNucleus_exploexplo_test(bunch,(old_count+count)*dt,0);
-        } else if (verbose>4) {
+        } 
+        else if (verbose>4) {
           bg->updateMultiChannelsNucleus_exploexplo_test(bunch,(old_count+count)*dt,verbose-4);
-        } else {
+        } 
+        else {
           bg->updateMultiChannelsNucleus(bunch);
         }
-        count+=bunch;
-        for (int i=FIRST_NUCLEUS_SIM; i<LAST_NUCLEUS_SIM; i++)
-        {
+        count += bunch;
+        for (int i=FIRST_NUCLEUS_SIM; i<LAST_NUCLEUS_SIM; i++){
           for (int ch_i=0; ch_i<ch_n; ch_i++) {
             means[i*ch_n+ch_i] = bg->get_multi_channels_nucleus(i)->get_S(ch_i);
           }
         }
       }
+      
       _add_to_fixed_l_list(nb_conv, last_out, means);
-#ifdef SMALLECHCONV
-      if (ch_n == 1) {
-        for (int contiguous_i=0; contiguous_i<contiguous_check_nb; contiguous_i++) {
-          bg->updateSingleChannelNucleus(1,integration_method);
-          count+=1;
-          for (int i=FIRST_NUCLEUS_SIM; i<LAST_NUCLEUS_SIM; i++)
-            { // do not store for the cortex & CMPf
-              means[i] = bg->get_single_channel_nucleus(i)->get_S();
-              if (isnan(means[i])) {
-                not_nan = false;
-                return_value = -1;
-              }
-            }
-          _add_to_fixed_l_list(nb_conv, last_out, means);
-        }
-      }
-#endif
 
     }
 
-    if (verbose==1) {
-      std::cout << count << " iterations done." << std::endl;
-    }
+  fichier.close();
 
-#ifdef BYPASS_CONV_CHECK
-    // This is intended as a bypass of validation, and it should be used only for comparing the different dt runs
-    if (return_value != -1 && _conv(last_out)) {
-      return_value = 1;
-    }
-#else
-    if (ch_n == 1) { // valid on for single channel nuclei
-      if (_conv(last_out) && not_nan) {
-        if (do_checks) {
-          bg->save_all(); // If we do test, this is the "normal" run, so we have to memorize the state
-          if (verbose==1) {
-            std::cout << "Apparently convergence was attained. Checking resistance to noise." << std::endl;
-          }
-          if (verbose==2||verbose==3) {
-            std::cerr << std::endl;
-          }
-          for (int i=0;i<(int)(5./dt+0.5);i+=(int)(0.5/dt+0.5)) { //hammerize the circuit for 5 seconds, by steps of 0.5 seconds
-            bg->hammerizeSingleChannelNucleus((int)(0.5/dt+0.5));
-            if (verbose==2 || verbose==3 || verbose==4) {
-
-              std::cerr << (old_count+count+i)*dt;
-              if (ch_n == 1) {
-                for (int i=0; i<NUCLEUS_NUMBER; i++) { // displays also for the cortex & CMPf
-                  std::cerr << " , " << bg->get_single_channel_nucleus(i)->get_S();
-                }
-              } else {
-                for (int i=0; i<NUCLEUS_NUMBER; i++) { // displays also for the cortex & CMPf
-                  for (int ch_i=0; ch_i<ch_n; ch_i++) {
-                    std::cerr << " , " << bg->get_multi_channels_nucleus(i)->get_S(ch_i);
-                  }
-                }
-              }
-              std::cerr << std::endl;
-            }
-          }
-
-          if (ch_n == 1) {
-            hammerization_eval = 0;
-            for (int i=2; i<NUCLEUS_NUMBER; i++) { // do not store for the cortex & CMPf
-              hammerization_eval += fabs(means[i] - bg->get_single_channel_nucleus(i)->get_S());
-            }
-            if (hammerization_eval < 5.) {
-              return_value = 1;
-              if (verbose==1) {
-                std::cout << "Resistant to noise." << std::endl;
-              }
-            } else {
-              if (verbose==1) {
-                std::cout << "WARNING !!! NOT Resistant to noise." << std::endl;
-              }
-            }
-          }
-          } else {
-            return_value = 1;
-          }
-        }
-      }
-#endif
-
-      delete CTX;
-      delete CMPf;
-      if (msn_separation) {
-        delete MSND1;
-        delete MSND2;
-      } else {
-        delete MSN;
-      }
-      delete FSI;
-      delete STN;
-      delete GPe;
-      delete GPi;
+  delete CTX;
+  delete CMPf;
+  if (msn_separation) {
+    delete MSND1;
+    delete MSND2;
+  } else {
+    delete MSN;
+  }
+  delete FSI;
+  delete STN;
+  delete GPe;
+  delete GPi;
 #ifdef ITPTCTX
       delete CTXPT;
 #endif
       ////delete bg;
 
-      return maxstn; // -1: divergence; 0: no convergence; 1: convergence
-    }
+      //return maxstn; // -1: divergence; 0: no convergence; 1: convergence
+      return 1;
+}
 
 
     int _run_sim_tsirogiannis_2010(
@@ -707,11 +579,11 @@ if (verbose==1)
       old_count += count;
       count = 0;
 
-      if (verbose==1)
-        std::cerr << bunch << " iterations (" << bunch*dt << " s) to be done between two tests of convergence, until " << max_duration/dt << " iterations (" << max_duration << "s) are done" << std::endl;
+      // if (verbose==1)
+      //   std::cerr << bunch << " iterations (" << bunch*dt << " s) to be done between two tests of convergence, until " << max_duration/dt << " iterations (" << max_duration << "s) are done" << std::endl;
 
-      if (verbose==2||verbose==3)
-        std::cerr << "t" << " , " << "STN" << " , " << "CTXe" << " , " << "V" << std::endl;
+      // if (verbose==2||verbose==3)
+      //   std::cerr << "t" << " , " << "STN" << " , " << "CTXe" << " , " << "V" << std::endl;
 
       while (
           (

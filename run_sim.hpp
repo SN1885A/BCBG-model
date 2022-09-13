@@ -29,7 +29,10 @@ int _run_sim(
     int msn_separation,
     int do_checks,
     MemoryBCBG2& mem,
-    int integration_method);
+    int integration_method,
+    float alpha, 
+    float STN_Theta_Offset, 
+    int modelNumber);
 
 int _run_sim_tsirogiannis_2010(
     float max_duration,

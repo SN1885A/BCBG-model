@@ -27,6 +27,7 @@ void BCBG2::MultiChannelsNucleus::initialize_multi_channels_nucleus(int ch_n, fl
 
   // initialization of counter for afferents
   n = 0;
+
   // allocation of arrays
   S.resize(bg_.max_tau); for(i=0;i<bg_.max_tau;i++) { S[i].assign(ch_n,Sini); }
   N_in.resize(0);
@@ -53,12 +54,15 @@ void BCBG2::MultiChannelsNucleus::set_afferent(float A, float D, int Sign, float
   set_afferent(A, D, Sign, C, T, 0., distance, N);
 }
 
+//C -> poids*a
+//T -> delay
+//connexion_scheme -> one to one or all to all
 void BCBG2::MultiChannelsNucleus::set_afferent(float A, float D, int Sign, float C, int T, float connexion_scheme, float distance, MultiChannelsNucleus* N)
 {
   this->initialize_new_afferent();
   A_in[n] = A*compute_distance_factor(distance)*1e-3; // convert A in V (from mV)
   D_in[n] = D*1e3; // convert D in s⁻¹ (from ms⁻¹)
-  C_in[n] = C;
+  C_in[n] = C; // poids synaptique nu
   ADC_in[n] = A_in[n]*D_in[n]*C;
   DD_in[n] = D_in[n]*D_in[n];
   D2_in[n] = 2.0*D_in[n];
@@ -152,7 +156,8 @@ void BCBG2::MultiChannelsNucleus::update_multi_channels_nucleus_stabilize(int st
       Hp_previous = Hp;
     }
     for (ch_i=0; ch_i<ch_n; ch_i++) {
-      Hp_in_RK4[i][ch_i].assign(bg_.max_tau,Hp_previous); H_in_RK4[i][ch_i].assign(bg_.max_tau,H_previous);
+      Hp_in_RK4[i][ch_i].assign(bg_.max_tau,Hp_previous); 
+      H_in_RK4[i][ch_i].assign(bg_.max_tau,H_previous);
     }
   }
 }

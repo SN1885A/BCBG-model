@@ -132,36 +132,91 @@ int main(int argc, char** argv)
   std::vector<float> modulators_synaptic;
   std::vector<float> params_cs;
 
-
+    //c = 10
     int c = (int)(1./(dt*1000.0)+0.5);
     int im=0;
     params_delay.assign(ARGS_NUMBER,c);
 
-    //////// delays given in Van Albada et al 2009
-    //int delay_model_CTX_Str = 2;
-    //int delay_model_CTX_STN = 1;
-    //int delay_model_Str_GPe = 1;
-    //int delay_model_Str_GPi = 1;
-    //int delay_model_STN_GPe = 1;
-    //int delay_model_STN_GPi = 1;
-    //int delay_model_GPe_STN = 1;
-    //int delay_model_GPe_GPi = 1;
-    //int striatal_afferents = 1;
     
-    ////// delays given in Tsirogiannis et al 2010
-    int delay_model_CTX_Str = 4;
-    int delay_model_CTX_STN = 1;
-    int delay_model_Str_GPe = 3;
-    int delay_model_Str_GPi = 3;
-    int delay_model_STN_GPe = 1;
-    int delay_model_STN_GPi = 1;
-    int delay_model_GPe_STN = 1;
-    int delay_model_GPe_GPi = 1;
+    // Old delays
+    // int delay_model_CTX_Str = 7;
+    // int delay_model_CTX_STN = 3;
+    // int delay_model_Str_GPe = 7;
+    // int delay_model_Str_GPi = 11;
+    // int delay_model_STN_GPe = 3;
+    // int delay_model_STN_GPi = 3;
+    // int delay_model_GPe_STN = 10;
+    // int delay_model_GPe_GPi = 3;
+    // int delay_model_GPe_Str = 3;
+    // int delay_model_STN_Str = 3;
+    // int delay_model_CMPf    = 1;
+
+    // Delays 1 ANTDRM
+    // int delay_model_CTX_Str = 9;
+    // int delay_model_CTX_STN = 4;
+    // int delay_model_Str_GPe = 4;
+    // int delay_model_Str_GPi = 8;
+    // int delay_model_STN_GPe = 4;
+    // int delay_model_STN_GPi = 4;
+    // int delay_model_GPe_STN = 2;
+    // int delay_model_GPe_GPi = 4;
+    // int delay_model_GPe_Str = 3;
+    // int delay_model_STN_Str = 3;
+    // int delay_model_CMPf    = 1;
+
+    // Delays 2 CMPR
+    // int delay_model_CTX_Str = 6;
+    // int delay_model_CTX_STN = 4;
+    // int delay_model_Str_GPe = 8;
+    // int delay_model_Str_GPi = 11;
+    // int delay_model_STN_GPe = 9;
+    // int delay_model_STN_GPi = 4;
+    // int delay_model_GPe_STN = 1;
+    // int delay_model_GPe_GPi = 1;
+    // int delay_model_GPe_Str = 3;
+    // int delay_model_STN_Str = 3;
+    // int delay_model_CMPf    = 1;
+
+    // Delays 3 NOPLKV
+    int delay_model_CTX_Str = 9;
+    int delay_model_CTX_STN = 4;
+    int delay_model_Str_GPe = 6;
+    int delay_model_Str_GPi = 8;
+    int delay_model_STN_GPe = 2;
+    int delay_model_STN_GPi = 4;
+    int delay_model_GPe_STN = 7;
+    int delay_model_GPe_GPi = 4;
     int delay_model_GPe_Str = 3;
     int delay_model_STN_Str = 3;
     int delay_model_CMPf    = 1;
 
+
     params_delay[CTX_MSN]  = c * delay_model_CTX_Str;
+    params_delay[CTX_FSI]  = c * delay_model_CTX_Str;
+    params_delay[CTX_STN]  = c * delay_model_CTX_STN;
+    params_delay[CMPf_MSN] = c * 0;
+    params_delay[CMPf_FSI] = c * 0;
+    params_delay[CMPf_STN] = c * 0;
+    params_delay[CMPf_GPe] = c * 0;
+    params_delay[CMPf_GPi] = c * 0;
+    params_delay[MSN_GPe]  = c * delay_model_Str_GPe;
+    params_delay[MSN_GPi]  = c * delay_model_Str_GPi;
+    params_delay[MSN_MSN]  = c * 0;
+    params_delay[FSI_MSN]  = c * 0;
+    params_delay[FSI_FSI]  = c * 0;
+    params_delay[STN_GPe]  = c * delay_model_STN_GPe;
+    params_delay[STN_GPi]  = c * delay_model_STN_GPi;
+    params_delay[STN_MSN]  = c * delay_model_STN_Str;
+    params_delay[STN_FSI]  = c * delay_model_STN_Str;
+    params_delay[GPe_STN]  = c * delay_model_GPe_STN;
+    params_delay[GPe_GPi]  = c * delay_model_GPe_GPi;
+    params_delay[GPe_MSN]  = c * delay_model_GPe_Str;
+    params_delay[GPe_FSI]  = c * delay_model_GPe_Str;
+    params_delay[GPe_GPe]  = c * 0;
+    params_delay[CTXPT_MSN]=   c * delay_model_CTX_Str;
+    params_delay[CTXPT_FSI]=   c * delay_model_CTX_Str;
+
+    /*params_delay[CTX_MSN]  = c * delay_model_CTX_Str;
     params_delay[CTX_FSI]  = c * delay_model_CTX_Str;
     params_delay[CTX_STN]  = c * delay_model_CTX_STN;
     params_delay[CMPf_MSN] = c * 1;
@@ -184,7 +239,7 @@ int main(int argc, char** argv)
     params_delay[GPe_FSI]  = c * delay_model_GPe_Str;
     params_delay[GPe_GPe]  = c * 1;
     params_delay[CTXPT_MSN]=   c * delay_model_CTX_STN;
-    params_delay[CTXPT_FSI]=   c * delay_model_CTX_STN;
+    params_delay[CTXPT_FSI]=   c * delay_model_CTX_STN;*/
 
     std::vector<float> raw_params;
     raw_params.assign(ARGS_NUMBER,0.);
@@ -198,43 +253,49 @@ int main(int argc, char** argv)
 			manual_input[i] = atof(argv[i+1+3]); // +3 : the first three runs correspond to the run n°, score bio previously computed, score electro previously computed
       if (manual_input[i] < 0.0) {
         manual_input[i] = 0.0;
-      } else if (manual_input[i] > 1.0) {
+      } else if (manual_input[i] > 1.0 && i < ARGS_NUMBER-3) {
         manual_input[i] = 1.0;
       }
-      if (ch_n == 1) {
+      /*if (ch_n == 1) {
         std::cerr << " " << manual_input[i] ;
-      }
+      }*/
     }
     if (ch_n == 1) {
       std::cerr << std::endl;
     }
 
     for (int i=0; i<ARGS_NUMBER; i++) {raw_params[i] = manual_input[i];}
+  
+    int modelNumber = raw_params[MODELID];
+    float alpha = raw_params[ALPHA];
+    int STN_theta_offset = raw_params[STN_THETA_OFFSET];
 
-       raw_params[CTX_MSN]  = raw_params[CTX_MSN]*5995.0f+5.0f;//
-       raw_params[CTX_FSI]  = raw_params[CTX_FSI]*5995.0f+5.0f;//Warning: these are not axonal boutons count, but synapse number
-       raw_params[CTX_STN]  = raw_params[CTX_STN]*5995.0f+5.0f;//
-       raw_params[CMPf_MSN] = param2boutons(raw_params[CMPf_MSN], false);
-       raw_params[CMPf_FSI] = param2boutons(raw_params[CMPf_FSI], false);
-       raw_params[CMPf_STN] = param2boutons(raw_params[CMPf_STN], false);
-       raw_params[CMPf_GPe] = param2boutons(raw_params[CMPf_GPe], false);
-       raw_params[CMPf_GPi] = param2boutons(raw_params[CMPf_GPi], false);
-       raw_params[MSN_GPe]  = param2boutons(raw_params[MSN_GPe], false);
-       raw_params[MSN_GPi]  = param2boutons(raw_params[MSN_GPi], false);
-       raw_params[MSN_MSN]  = param2boutons(raw_params[MSN_MSN], false);
-       raw_params[FSI_MSN]  = param2boutons(raw_params[FSI_MSN], false);
-       raw_params[FSI_FSI]  = param2boutons(raw_params[FSI_FSI], false);
-       raw_params[STN_GPe]  = param2boutons(raw_params[STN_GPe], false);
-       raw_params[STN_GPi]  = param2boutons(raw_params[STN_GPi], false);
-       raw_params[STN_MSN]  = param2boutons(raw_params[STN_MSN], true);  // allow the optimization to set this connection to be null
-       raw_params[STN_FSI]  = param2boutons(raw_params[STN_FSI], true);  // ^
-       raw_params[GPe_STN]  = param2boutons(raw_params[GPe_STN], false);
-       raw_params[GPe_GPi]  = param2boutons(raw_params[GPe_GPi], false);
-       raw_params[GPe_MSN]  = param2boutons(raw_params[GPe_MSN], true);  // ^
-       raw_params[GPe_FSI]  = param2boutons(raw_params[GPe_FSI], true);  // ^
-       raw_params[GPe_GPe]  = param2boutons(raw_params[GPe_GPe], false);
-       raw_params[CTXPT_MSN]= param2boutons(raw_params[CTXPT_MSN], false);
-       raw_params[CTXPT_FSI]= param2boutons(raw_params[CTXPT_FSI], false);
+    //std::cout << "modelNumber = " << modelNumber << " alpha = " << alpha << " STN_theta_offset = " << STN_theta_offset << std::endl;
+
+    raw_params[CTX_MSN]  = raw_params[CTX_MSN]*5995.0f+5.0f;//
+    raw_params[CTX_FSI]  = raw_params[CTX_FSI]*5995.0f+5.0f;//Warning: these are not axonal boutons count, but synapse number
+    raw_params[CTX_STN]  = raw_params[CTX_STN]*5995.0f+5.0f;//
+    raw_params[CMPf_MSN] = param2boutons(raw_params[CMPf_MSN], false);
+    raw_params[CMPf_FSI] = param2boutons(raw_params[CMPf_FSI], false);
+    raw_params[CMPf_STN] = param2boutons(raw_params[CMPf_STN], false);
+    raw_params[CMPf_GPe] = param2boutons(raw_params[CMPf_GPe], false);
+    raw_params[CMPf_GPi] = param2boutons(raw_params[CMPf_GPi], false);
+    raw_params[MSN_GPe]  = param2boutons(raw_params[MSN_GPe], false);
+    raw_params[MSN_GPi]  = param2boutons(raw_params[MSN_GPi], false);
+    raw_params[MSN_MSN]  = param2boutons(raw_params[MSN_MSN], false);
+    raw_params[FSI_MSN]  = param2boutons(raw_params[FSI_MSN], false);
+    raw_params[FSI_FSI]  = param2boutons(raw_params[FSI_FSI], false);
+    raw_params[STN_GPe]  = param2boutons(raw_params[STN_GPe], false);
+    raw_params[STN_GPi]  = param2boutons(raw_params[STN_GPi], false);
+    raw_params[STN_MSN]  = param2boutons(raw_params[STN_MSN], true);  // allow the optimization to set this connection to be null
+    raw_params[STN_FSI]  = param2boutons(raw_params[STN_FSI], true);  // ^
+    raw_params[GPe_STN]  = param2boutons(raw_params[GPe_STN], false);
+    raw_params[GPe_GPi]  = param2boutons(raw_params[GPe_GPi], false);
+    raw_params[GPe_MSN]  = param2boutons(raw_params[GPe_MSN], true);  // ^
+    raw_params[GPe_FSI]  = param2boutons(raw_params[GPe_FSI], true);  // ^
+    raw_params[GPe_GPe]  = param2boutons(raw_params[GPe_GPe], false);
+    raw_params[CTXPT_MSN]= param2boutons(raw_params[CTXPT_MSN], false);
+    raw_params[CTXPT_FSI]= param2boutons(raw_params[CTXPT_FSI], false);
 
     float score_0 = calc_score_selective_axons(raw_params,false,-1);
 
@@ -373,7 +434,7 @@ int main(int argc, char** argv)
 #ifdef LIGHTCONV
     float sim_time = 0.5;
 #elif defined(TESTCONV)
-    float sim_time = 10;
+    float sim_time = 30;
 #elif defined(SOUNDCONV)
     float sim_time = 5;
 #elif defined(OBJECTCONV)
@@ -395,50 +456,28 @@ int main(int argc, char** argv)
   float score_desact = 0;
   float score_desact_other = 0;
 
-    // to get the logs
-    // last and bef-bef-last do not matter in the case of multichannels nuclei
-    // verbose does not matter if >4 and multichannels
-    // 
-    result = _run_sim(sim_time,0.001,dt,modulators_synaptic,params_cs,params_synaptic,params_delay,means,4,ch_n,msn_separation,0,mem,0); // verbose version
+  // to get the logs
+  // last and bef-bef-last do not matter in the case of multichannels nuclei
+  // verbose does not matter if >4 and multichannels
+  
+  /*float max_duration,
+  float bunch_duration,
+  float dt,
+  std::vector<float> &a,
+  std::vector<float> &c,
+  std::vector<float> &p,
+  std::vector<int> &de,
+  std::vector<float> &means,
+  int verbose,
+  int ch_n,
+  int msn_separation,
+  int do_checks,
+  MemoryBCBG2& mem,
+  int integration_method*/
 
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[MSN_N*ch_n+ch_i] << " ";
-        }
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[FSI_N*ch_n+ch_i] << " ";
-        }
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[STN_N*ch_n+ch_i] << " ";
-        }
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[GPe_N*ch_n+ch_i] << " ";
-        }
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[GPi_N*ch_n+ch_i] << " ";
-        }
-
-
-  score_desact_other = calc_score_desactivation(means, params_synaptic, params_delay, 0.0f, sim_time, mem,true);
-
-    result = _run_sim(sim_time,0.001,dt,modulators_synaptic,params_cs,params_synaptic,params_delay,means,5,ch_n,msn_separation,0,mem,0); // verbose version
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[MSN_N*ch_n+ch_i] << " ";
-        }
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[FSI_N*ch_n+ch_i] << " ";
-        }
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[STN_N*ch_n+ch_i] << " ";
-        }
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[GPe_N*ch_n+ch_i] << " ";
-        }
-        for (int ch_i=0; ch_i < ch_n; ch_i++) {
-          std::cout << means[GPi_N*ch_n+ch_i] << " ";
-        }
-
-        std::cout << std::endl;
-    return 0;
+  result = _run_sim(sim_time,0.001,dt,modulators_synaptic,params_cs,params_synaptic,params_delay,means,4,ch_n,msn_separation,0,mem,0, alpha, STN_theta_offset, modelNumber); 
+          
+return 0;
 
 }
 

@@ -153,10 +153,13 @@ void BCBG2::updateMultiChannelsNucleus_humphries_test(int steps, float time)
 }
 
 float BCBG2::scalevar(float m) {
+
   float r = BCBG2::_uni_one_gaussian()+m-1.0f;
+
   while (r < 0) {
     r = _uni_one_gaussian()+m-1.0f;
   }
+
   return r;
 }
 
@@ -289,15 +292,22 @@ void BCBG2::updateSingleChannelNucleusWithNoise(int steps, int integration_metho
   int i,s;
   float rnd_nb_ctx,rnd_nb_th;
   float rnd_nb_ctxPT;
+
   // multi_channels_nucleus n°0 is always the input - we handle them differently
+
   for (s=0;s<steps;s++) {
-    rnd_nb_ctx=scalevar(2.0);
+
+    rnd_nb_ctx = scalevar(2.0);
     SCN[CTX_N]->set_S(rnd_nb_ctx,previous_tmod);
-    rnd_nb_th=4.;
+
+    rnd_nb_th = 4.;
     SCN[CMPf_N]->set_S(scalevar(rnd_nb_th),previous_tmod);
+    
 #ifdef ITPTCTX
-    rnd_nb_ctxPT=15.;
+
+    rnd_nb_ctxPT = 15.;
     SCN[CTXPT_N]->set_S(rnd_nb_ctx+13.0,previous_tmod);
+
     for (i=2; i < n_nuclei-1; i++) 
 #else
     for (i=2; i < n_nuclei; i++) 
@@ -305,15 +315,19 @@ void BCBG2::updateSingleChannelNucleusWithNoise(int steps, int integration_metho
     {
       if (integration_method == 0) {
         SCN[i]->update_single_channel_nucleus_euler();
-      } else {
+      } 
+      else {
         SCN[i]->update_single_channel_nucleus_rk3();
       }
     }
+
     previous_tmod = tmod;
     tmod++;
+
     if (tmod == max_tau) {
       tmod = 0;
     }
+    
   }
 }
 
@@ -497,15 +511,19 @@ void BCBG2::load_all(MemoryBCBG2& mem)
 void BCBG2::stabilize_all(int steps)
 {
   int i,s;
-    for (i=2; i < n_nuclei; i++) {
+
+  for (i=2; i < n_nuclei; i++) {
       if (nucleus_type == 0) {
         SCN[i]->update_single_channel_nucleus_stabilize(steps);
-      } else if (nucleus_type == 1) {
+      } 
+      else if (nucleus_type == 1) {
         MCN[i]->update_multi_channels_nucleus_stabilize(steps);
-      } else {
+      } 
+      else {
         std::cout << "stabilisation not implemented (wrong nucleus type)" << std::endl;
       }
   }
+
 }
 
 
